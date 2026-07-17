@@ -7,5 +7,5 @@
 - Add Windows registry CD-key discovery and cryptographic key verification.
 - Add exact transfer verification and safe installation with backups.
 - Include offline HTML converter and offline HTML `unlockstats_mp` editor.
-- Remove the incorrect weapon-camouflage wording from the editor.
-- Clarify that custom class names do not transfer and must be renamed in-game.
+- Removed the incorrect weapon-camouflage wording from the editor.
+- Clarified that custom class names do not transfer and must be renamed in-game.
