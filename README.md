@@ -1,101 +1,30 @@
-# World at War MPData to Plutonium Tools
+I could not find the old Easy Account Manager tool to help me transfer my Steam MP profile, so i took matters into my own hands.
 
-Offline, source-available tools for transferring a Call of Duty: World at War PC multiplayer profile into the `unlockstats_mp` format used by Plutonium T4, plus an editor for raw `unlockstats_mp` files.
+These tools will help you transfer your World at War multiplayer profile from the Steam/Retail version into Plutonium T4.
 
-## Included tools
+The **MPData Converter** reads the encrypted `mpdata` file, authenticates it using the matching World at War CD key, extracts the complete multiplayer statistics block, verifies its checksum, and generates an `unlockstats_mp` file.
 
-- **Offline HTML converter** — decrypts and validates an individual retail/Steam `mpdata` file in the browser. The user enters the matching World at War CD key manually.
-- **Python converter** — supports individual files, profile folders, and ZIP archives. On Windows it can search the normal registry locations for the matching CD key.
-- **Windows drag-and-drop launchers** — convenient wrappers for conversion and installation. Python 3.10 or newer must be installed.
-- **Offline HTML editor** — reads and edits known fields in an existing `unlockstats_mp` file and recalculates its CRC-32 when saving.
-- **Python raw-stat tool** — inspect, edit, repair, dump, and compare raw `unlockstats_mp` files.
-
-The current import target used by the project is:
+That generated file can then be placed in:
 
 ```text
-%LOCALAPPDATA%\Plutonium\storage\t4\plutonium\unlockstats_mp
+%LOCALAPPDATA%\Plutonium\storage\t4\plutonium\
 ```
 
-Custom class names do not transfer to Plutonium and must be renamed in-game after import.
+and imported into your active Plutonium profile using `/unlockall`.
 
-## Requirements
+This package includes two converter options:
 
-### Browser tools
+* An offline HTML version that runs directly in a web browser, does not require Python, and requires the CD key to be entered manually.
+* A Windows batch/Python version that can automatically locate the installed World at War CD key in the Windows Registry and verify it against the selected profile.
 
-Open either HTML file in a current desktop browser. No installation, server, or internet connection is required.
+**Python 3 must be installed to use the `.bat` files and the included Python command-line tool.** The HTML converter and HTML Unlockstats Editor **do not** require Python.
 
-### Python and batch tools
+The converter transfers the entire multiplayer statistics block, including rank, prestige, XP, combat statistics, challenges, weapon unlocks, perks, attachments, and custom-class loadout data (Custom-class names do not transfer, they will need to be entered again).
 
-- Windows 10 or newer is recommended for registry lookup and the `.bat` launchers.
-- Python **3.10 or newer** must be installed.
-- No third-party Python packages are required.
+Also included is an **Unlockstats Editor**  that can open an existing `unlockstats_mp` file. It displays player statistics, allows values to be edited and automatically regenerates the required CRC-32 checksum when saving. It runs locally in a web browser and does not require Python.
 
-Check Python with:
-
-```bat
-py -3 --version
-```
-
-## Quick start
-
-### Convert with the HTML version
-
-1. Open `waw_mpdata_to_unlockstats_mp.html`.
-2. Select the Steam/retail `mpdata` file.
-3. Enter the matching World at War CD key.
-4. Confirm outer authentication and inner CRC validation.
-5. Save the generated file as `unlockstats_mp`.
-
-### Convert with the Windows launcher
-
-1. Install Python 3.10 or newer.
-2. Drag `mpdata`, `mpdatabk0000`, a profile folder, or a profile ZIP onto `convert_mpdata_drag_and_drop.bat`.
-3. The converter searches the standard World at War registry locations for a matching CD key. It prompts only when no matching key is found.
-4. Confirm the generated file is exactly 8,192 bytes and reports a valid CRC.
-
-### Install the generated file
-
-Drag `unlockstats_mp` onto `install_unlockstats_mp_drag_and_drop.bat`, or manually copy it to:
+Your Steam/Retail key is located at:
 
 ```text
-%LOCALAPPDATA%\Plutonium\storage\t4\plutonium\unlockstats_mp
+"Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Activision\Call of Duty WAW"
 ```
-
-After selecting the intended Plutonium multiplayer profile, run `/unlockall` once. Back up both the Steam and Plutonium profiles before importing.
-
-## Self-test
-
-```bash
-python waw_mpdata_transfer_tool.py self-test
-python -m compileall -q waw_mpdata_transfer_tool.py waw_unlockstats_mp_tool.py
-```
-
-The self-test covers MD4 vectors, encryption/decryption round trips, CD-key normalization, wrong-key rejection, ASCII-hex input, and CRC handling.
-
-## Repository safety
-
-The tools run locally and contain no telemetry or network code. Do not commit or publish:
-
-- World at War CD keys
-- `mpdata` or `mpdatabk0000`
-- `.corrupt` profile files
-- generated `unlockstats_mp` files containing personal player data
-
-See [SECURITY.md](SECURITY.md) for reporting and privacy guidance.
-
-## Documentation
-
-- [Quick start](docs/QUICK_START.txt)
-- [Detailed usage and format notes](docs/DETAILED_USAGE.md)
-- [Third-party notices](THIRD_PARTY_NOTICES.md)
-- [Changelog](CHANGELOG.md)
-
-## License
-
-This project is licensed under the GNU General Public License, version 2 or later. See [LICENSE](LICENSE).
-
-The IWM encryption/decryption implementation is a Python/JavaScript reimplementation informed by `codmpdatadec`, Copyright © 2009 Luigi Auriemma. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Disclaimer
-
-This community project is not affiliated with, endorsed by, or sponsored by Activision, Treyarch, or Steam. Use it only with profile data and software you are authorized to access, and always keep backups.
