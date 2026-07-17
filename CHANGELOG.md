@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0
+## 2.1
 
 - Generate and install `unlockstats_mp` at the current Plutonium T4 path.
 - Support encrypted `iwm0`, plaintext `ice0`, decrypted payload, raw playerstats, folders, ZIP archives, and renamed `.corrupt` inputs.
