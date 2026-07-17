@@ -1,0 +1,647 @@
+<!-- SPDX-License-Identifier: GPL-2.0-or-later
+IWM encryption/decryption support is a Python/JavaScript reimplementation based on
+codmpdatadec, Copyright (C) 2009 Luigi Auriemma. Modified implementation, July 2026.
+This program is distributed without any warranty. See LICENSE_GPL-2.0-or-later.txt.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WaW MPData to Plutonium unlockstats_mp</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #101319;
+    --panel: #1a1f28;
+    --panel2: #222a36;
+    --input: #0c1016;
+    --text: #eef3fa;
+    --muted: #a9b5c5;
+    --border: #3b4656;
+    --accent: #7dbaff;
+    --good: #7ed8a0;
+    --warn: #ffd27c;
+    --bad: #ff9191;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.45;
+  }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px; }
+  h1 { margin: 0 0 6px; font-size: clamp(1.6rem, 4vw, 2.45rem); }
+  h2 { margin: 0 0 10px; font-size: 1.15rem; }
+  p { margin: 0.45rem 0; }
+  code { background: var(--input); padding: 0.1rem 0.32rem; border-radius: 4px; }
+  .lead { max-width: 85ch; color: var(--muted); }
+  .panel {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+  }
+  .row { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+  .field { display: grid; gap: 5px; min-width: 190px; }
+  .field.grow { flex: 1 1 300px; }
+  label { color: var(--muted); font-size: 0.88rem; }
+  input, button {
+    min-height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+  }
+  input { padding: 7px 10px; color: var(--text); background: var(--input); }
+  input[type="checkbox"] { min-height: 0; accent-color: var(--accent); }
+  button { padding: 7px 14px; color: var(--text); background: var(--panel2); cursor: pointer; }
+  button.primary { color: #07111d; background: var(--accent); border-color: var(--accent); font-weight: 750; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { cursor: not-allowed; opacity: 0.5; }
+  .checkline { display: flex; gap: 8px; align-items: center; min-height: 40px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .card { padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel2); }
+  .label { color: var(--muted); font-size: 0.77rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  .value { margin-top: 4px; overflow-wrap: anywhere; font: 650 0.94rem ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .status { min-height: 1.5em; margin-top: 10px; }
+  .small { color: var(--muted); font-size: 0.88rem; }
+  .good { color: var(--good); }
+  .warn { color: var(--warn); }
+  .bad { color: var(--bad); }
+  .note { margin-top: 12px; padding: 9px 12px; border-left: 4px solid var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); }
+  .table-wrap { margin-top: 10px; overflow: auto; border: 1px solid var(--border); border-radius: 9px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--muted); background: var(--panel2); font-size: 0.8rem; }
+  td:last-child { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .privacy { margin-top: 16px; color: var(--muted); font-size: 0.84rem; }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f6f9;
+      --panel: #fff;
+      --panel2: #f0f3f7;
+      --input: #fff;
+      --text: #182230;
+      --muted: #5d6a79;
+      --border: #c8d0db;
+      --accent: #1974d2;
+      --good: #146f39;
+      --warn: #855800;
+      --bad: #b3261e;
+    }
+    button.primary { color: #fff; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>WaW MPData → Plutonium <code>unlockstats_mp</code></h1>
+  <p class="lead">Offline converter for Call of Duty: World at War PC multiplayer profiles. It decrypts a retail <code>mpdata</code> locally, verifies both integrity layers, and downloads only the 8,192-byte <code>unlockstats_mp</code> import block used by current Plutonium T4 builds.</p>
+
+  <section class="panel">
+    <h2>1. Select the player file</h2>
+    <div class="row">
+      <div class="field grow">
+        <label for="fileInput">Retail <code>mpdata</code>, <code>mpdatabk0000</code>, renamed <code>.corrupt</code> MPData, decrypted payload, or existing <code>unlockstats_mp</code></label>
+        <input id="fileInput" type="file">
+      </div>
+      <div class="field grow">
+        <label for="keyInput">Original WaW CD key — needed only for encrypted <code>iwm0</code> files</label>
+        <input id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Enter the key used when this profile was created">
+      </div>
+      <label class="checkline"><input id="showKey" type="checkbox"> Show key</label>
+      <button id="readButton" class="primary">Read / decrypt</button>
+      <button id="clearButton">Clear</button>
+    </div>
+    <div class="note small">
+      Supported sizes: retail encrypted container <code>0x211c</code> (8,476 bytes), decrypted payload <code>0x2104</code> (8,452 bytes), and raw Plutonium block <code>0x2000</code> (8,192 bytes). The CD key is used only in this browser tab and is cleared after a successful decryption.
+    </div>
+    <div id="readStatus" class="status small">No file processed.</div>
+  </section>
+
+  <section class="panel">
+    <h2>2. Verify the extracted data</h2>
+    <div class="grid">
+      <div class="card"><div class="label">Detected source</div><div id="formatValue" class="value">-</div></div>
+      <div class="card"><div class="label">Input size</div><div id="sizeValue" class="value">-</div></div>
+      <div class="card"><div class="label">Outer IWM hash</div><div id="outerValue" class="value">-</div></div>
+      <div class="card"><div class="label">Inner CRC-32</div><div id="crcValue" class="value">-</div></div>
+      <div class="card"><div class="label">fs_game path</div><div id="pathValue" class="value">-</div></div>
+      <div class="card"><div class="label">Output SHA-256</div><div id="shaValue" class="value">-</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning</th><th>Raw value</th></tr></thead>
+        <tbody id="previewBody"><tr><td colspan="3" class="small">Process a file to display its player summary.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>3. Save the Plutonium file</h2>
+    <div class="row">
+      <div class="field grow">
+        <label for="outputName">Output filename</label>
+        <input id="outputName" value="unlockstats_mp" disabled>
+      </div>
+      <label class="checkline"><input id="repairCrc" type="checkbox" disabled> Repair the inner CRC if it is mismatched</label>
+      <button id="saveButton" class="primary" disabled>Download unlockstats_mp</button>
+    </div>
+    <div id="saveStatus" class="status small"></div>
+    <div class="note small">
+      Save this extensionless file as <code>unlockstats_mp</code>. The current import location confirmed from the supplied T4 folder is <code>%LOCALAPPDATA%\Plutonium\storage\t4\plutonium\unlockstats_mp</code>. This is an import template, not the profile's live encrypted <code>mpdata</code>; activate the intended multiplayer profile and run <code>/unlockall</code> once after installing it.
+    </div>
+    <div class="note small">
+      The converter copies the entire player-statistics block, including rank, prestige, totals, unlocks, challenges, and class/loadout data. Custom class names do not transfer to Plutonium and must be renamed in-game after import.
+    </div>
+  </section>
+
+  <p class="privacy">No network requests are made. The selected file, decrypted profile, and CD key remain on this computer. GPL-2.0-or-later; IWM support is based on codmpdatadec by Luigi Auriemma (2009). No warranty.</p>
+</main>
+<script>
+"use strict";
+
+const MASK32 = 0xFFFFFFFF;
+const IWM_ENCRYPTED_SIZE = 0x211C;
+const IWM_PAYLOAD_SIZE = 0x2104;
+const IWM_CRYPT_REGION_SIZE = 0x2114;
+const IWM_HASH_SIZE = 16;
+const FS_GAME_PATH_SIZE = 0x104;
+const UNLOCKSTATS_SIZE = 0x2000;
+const IWM_WORD_COUNT = IWM_CRYPT_REGION_SIZE / 4;
+const IWM_LAST_WORD = IWM_WORD_COUNT - 1;
+const BYTE_STATS_COUNT = 2000;
+const DWORD_STATS_OFFSET = 0x07D4;
+
+let selectedFile = null;
+let extracted = null;
+
+const crcTable = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(bytes, start = 0, end = bytes.length) {
+  let crc = 0xFFFFFFFF;
+  for (let i = start; i < end; i++) crc = crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function dataView(bytes) { return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength); }
+function u32(value) { return value >>> 0; }
+function rotl32(value, shift) { return u32((value << shift) | (value >>> (32 - shift))); }
+function hex32(value) { return "0x" + u32(value).toString(16).padStart(8, "0"); }
+function equalBytes(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+function concatBytes(...arrays) {
+  const length = arrays.reduce((sum, value) => sum + value.length, 0);
+  const out = new Uint8Array(length);
+  let offset = 0;
+  for (const value of arrays) { out.set(value, offset); offset += value.length; }
+  return out;
+}
+function le32Bytes(value) {
+  const out = new Uint8Array(4);
+  new DataView(out.buffer).setUint32(0, u32(value), true);
+  return out;
+}
+
+function md4(input) {
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  const totalLength = Math.ceil((bytes.length + 9) / 64) * 64;
+  const message = new Uint8Array(totalLength);
+  message.set(bytes);
+  message[bytes.length] = 0x80;
+  const view = new DataView(message.buffer);
+  const bitLength = bytes.length * 8;
+  view.setUint32(totalLength - 8, bitLength >>> 0, true);
+  view.setUint32(totalLength - 4, Math.floor(bitLength / 0x100000000) >>> 0, true);
+
+  let a0 = 0x67452301;
+  let b0 = 0xEFCDAB89;
+  let c0 = 0x98BADCFE;
+  let d0 = 0x10325476;
+  const r2 = [0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15];
+  const r3 = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
+
+  const f = (x, y, z) => u32((x & y) | ((~x) & z));
+  const g = (x, y, z) => u32((x & y) | (x & z) | (y & z));
+  const h = (x, y, z) => u32(x ^ y ^ z);
+
+  for (let offset = 0; offset < totalLength; offset += 64) {
+    const x = new Uint32Array(16);
+    for (let i = 0; i < 16; i++) x[i] = view.getUint32(offset + i * 4, true);
+    let a = a0, b = b0, c = c0, d = d0;
+
+    for (let i = 0; i < 16; i++) {
+      const shift = [3, 7, 11, 19][i & 3];
+      a = rotl32(u32(a + f(b, c, d) + x[i]), shift);
+      [a, b, c, d] = [d, a, b, c];
+    }
+    for (let i = 0; i < 16; i++) {
+      const shift = [3, 5, 9, 13][i & 3];
+      a = rotl32(u32(a + g(b, c, d) + x[r2[i]] + 0x5A827999), shift);
+      [a, b, c, d] = [d, a, b, c];
+    }
+    for (let i = 0; i < 16; i++) {
+      const shift = [3, 9, 11, 15][i & 3];
+      a = rotl32(u32(a + h(b, c, d) + x[r3[i]] + 0x6ED9EBA1), shift);
+      [a, b, c, d] = [d, a, b, c];
+    }
+
+    a0 = u32(a0 + a);
+    b0 = u32(b0 + b);
+    c0 = u32(c0 + c);
+    d0 = u32(d0 + d);
+  }
+
+  const digest = new Uint8Array(16);
+  const digestView = new DataView(digest.buffer);
+  digestView.setUint32(0, a0, true);
+  digestView.setUint32(4, b0, true);
+  digestView.setUint32(8, c0, true);
+  digestView.setUint32(12, d0, true);
+  return digest;
+}
+
+function asciiBytes(text) {
+  const out = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code > 0x7F) throw new Error("The CD key must contain ASCII characters only.");
+    out[i] = code;
+  }
+  return out;
+}
+
+function makeKeyBuffer(cdKey, mode) {
+  const raw = asciiBytes(cdKey);
+  if (raw.length < 16) throw new Error("The normalized CD key is shorter than 16 characters.");
+  const padded = new Uint8Array(34);
+  if (mode === "waw") {
+    padded.fill(0x20, 0, 32);
+    if (raw.length < 34) {
+      padded.set(raw);
+      padded[raw.length] = 0;
+    } else {
+      padded.set(raw.slice(0, 34));
+    }
+    if (raw.length > 16) padded[22] = 0;
+    return padded;
+  }
+  if (mode === "cod4") {
+    padded.fill(0x20);
+    padded.set(raw.slice(0, 16));
+    padded[16] = 0;
+    padded[32] = 0;
+    padded[33] = 0;
+    return padded;
+  }
+  throw new Error("Unsupported key-padding mode.");
+}
+
+function deriveIwmKey(cdKey, seed, mode) {
+  const first = md4(concatBytes(le32Bytes(0x1F93AB07), makeKeyBuffer(cdKey, mode)));
+  const xor36 = new Uint8Array(16);
+  const xor5c = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) {
+    xor36[i] = first[i] ^ 0x36;
+    xor5c[i] = first[i] ^ 0x5C;
+  }
+  const intermediate = md4(concatBytes(xor36, le32Bytes(seed)));
+  const finalBytes = md4(concatBytes(xor5c, intermediate));
+  const view = new DataView(finalBytes.buffer);
+  return [view.getUint32(0, true), view.getUint32(4, true), view.getUint32(8, true), view.getUint32(12, true)];
+}
+
+function mix(z, y, total, key, position) {
+  const left = u32(((z >>> 5) ^ u32(y << 2)) + (u32(z << 4) ^ (y >>> 3)));
+  const right = u32((key[(position ^ (total >>> 2)) & 3] ^ z) + (total ^ y));
+  return u32(left ^ right);
+}
+
+function decryptIwmRegion(region, key) {
+  if (region.length !== IWM_CRYPT_REGION_SIZE) throw new Error("Invalid encrypted IWM region size.");
+  const words = new Uint32Array(IWM_WORD_COUNT);
+  const view = dataView(region);
+  for (let i = 0; i < IWM_WORD_COUNT; i++) words[i] = view.getUint32(i * 4, true);
+  let total = 0xB54CDA56;
+  while (true) {
+    let y = words[0];
+    for (let position = IWM_LAST_WORD; position > 0; position--) {
+      const z = words[position - 1];
+      words[position] = u32(words[position] - mix(z, y, total, key, position));
+      y = words[position];
+    }
+    const z = words[IWM_LAST_WORD];
+    words[0] = u32(words[0] - mix(z, y, total, key, 0));
+    total = u32(total + 0x61C88647);
+    if (total === 0) break;
+  }
+  const output = new Uint8Array(IWM_CRYPT_REGION_SIZE);
+  const outputView = new DataView(output.buffer);
+  for (let i = 0; i < IWM_WORD_COUNT; i++) outputView.setUint32(i * 4, words[i], true);
+  return output;
+}
+
+function expectedIwmHash(payload, seed, key) {
+  const salt = u32(u32(key[2] + 0x928D764C) ^ seed);
+  return md4(concatBytes(le32Bytes(salt), payload));
+}
+
+function uniqueVariants(values) {
+  const seen = new Set();
+  return values.filter(([text]) => {
+    if (!text || seen.has(text)) return false;
+    seen.add(text);
+    return true;
+  });
+}
+
+function keyAttempts(supplied) {
+  const raw = supplied.trim();
+  const alnum = raw.replace(/[^A-Za-z0-9]/g, "");
+  const variants = uniqueVariants([
+    [raw, "as entered"],
+    [alnum, "letters/digits only"],
+    [alnum.toUpperCase(), "letters/digits uppercase"],
+    [alnum.toLowerCase(), "letters/digits lowercase"],
+    [raw.toUpperCase(), "uppercase"],
+    [raw.toLowerCase(), "lowercase"],
+  ]);
+  const attempts = [];
+  for (const [text, label] of variants) {
+    if (text.length < 16) continue;
+    attempts.push({text, label, mode: "waw"});
+    attempts.push({text, label, mode: "cod4"});
+  }
+  return attempts;
+}
+
+function decodePath(bytes) {
+  let end = bytes.indexOf(0);
+  if (end < 0) end = bytes.length;
+  return new TextDecoder("utf-8", {fatal: false}).decode(bytes.slice(0, end));
+}
+
+function resultFromPayload(payload, sourceFormat, extra = {}) {
+  if (payload.length !== IWM_PAYLOAD_SIZE) throw new Error("Invalid decrypted payload size.");
+  const pathBytes = payload.slice(0, FS_GAME_PATH_SIZE);
+  const stats = payload.slice(FS_GAME_PATH_SIZE);
+  if (stats.length !== UNLOCKSTATS_SIZE) throw new Error("The embedded stats block has the wrong size.");
+  return {sourceFormat, stats, fsGamePath: decodePath(pathBytes), outerVerified: null, ...extra};
+}
+
+function extractUnlockstats(source, suppliedKey = "") {
+  if (!(source instanceof Uint8Array)) source = new Uint8Array(source);
+  const header = source.length >= 4 ? new TextDecoder("ascii").decode(source.slice(0, 4)) : "";
+
+  if (source.length === UNLOCKSTATS_SIZE) {
+    return {sourceFormat: "raw unlockstats_mp / playerstats block", stats: source.slice(), fsGamePath: "", outerVerified: null, keyVariant: ""};
+  }
+  if (source.length === IWM_PAYLOAD_SIZE) {
+    return resultFromPayload(source, "decrypted 0x2104 IWM payload");
+  }
+  if (source.length !== IWM_ENCRYPTED_SIZE) {
+    throw new Error(`Unsupported size ${source.length} bytes. Expected 8476, 8452, or 8192 bytes.`);
+  }
+  if (header === "ice0") return resultFromPayload(source.slice(8 + IWM_HASH_SIZE), "decrypted ice0 IWM container");
+  if (header !== "iwm0") throw new Error(`Unsupported 8476-byte header ${JSON.stringify(header)}; expected "iwm0" or "ice0".`);
+  if (!suppliedKey.trim()) throw new Error("This retail iwm0 file is encrypted. Enter the original WaW CD key used by this profile.");
+
+  const seed = dataView(source).getUint32(4, true);
+  const encryptedRegion = source.slice(8);
+  for (const attempt of keyAttempts(suppliedKey)) {
+    const key = deriveIwmKey(attempt.text, seed, attempt.mode);
+    const plain = decryptIwmRegion(encryptedRegion, key);
+    const plainHash = plain.slice(0, IWM_HASH_SIZE);
+    const payload = plain.slice(IWM_HASH_SIZE);
+    if (!equalBytes(plainHash, expectedIwmHash(payload, seed, key))) continue;
+    return resultFromPayload(payload, "encrypted retail WaW iwm0 mpdata", {
+      outerVerified: true,
+      keyVariant: `${attempt.label}; ${attempt.mode} key padding`,
+    });
+  }
+  throw new Error("The outer IWM hash did not verify. The original CD key is wrong/incomplete, or this is an unsupported mod-specific profile.");
+}
+
+function statsCrcInfo(stats) {
+  const stored = dataView(stats).getUint32(0, true);
+  const calculated = crc32(stats, 4);
+  return {stored, calculated, valid: stored === calculated};
+}
+
+function statOffset(index) {
+  return index < BYTE_STATS_COUNT ? 4 + index : DWORD_STATS_OFFSET + (index - BYTE_STATS_COUNT) * 4;
+}
+function getStat(stats, index) {
+  const offset = statOffset(index);
+  return index < BYTE_STATS_COUNT ? stats[offset] : dataView(stats).getUint32(offset, true);
+}
+function setStatsCrc(stats) {
+  const value = crc32(stats, 4);
+  dataView(stats).setUint32(0, value, true);
+  return value;
+}
+
+async function sha256Hex(bytes) {
+  if (!globalThis.crypto || !globalThis.crypto.subtle) return "unavailable in this browser context";
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, "0")).join("");
+}
+
+function downloadBytes(bytes, filename) {
+  const blob = new Blob([bytes], {type: "application/octet-stream"});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function setClass(element, state) {
+  element.className = "value" + (state ? ` ${state}` : "");
+}
+
+function resetUi() {
+  selectedFile = null;
+  extracted = null;
+  document.getElementById("fileInput").value = "";
+  document.getElementById("keyInput").value = "";
+  document.getElementById("showKey").checked = false;
+  document.getElementById("keyInput").type = "password";
+  document.getElementById("readStatus").textContent = "No file processed.";
+  document.getElementById("readStatus").className = "status small";
+  for (const id of ["formatValue", "sizeValue", "outerValue", "crcValue", "pathValue", "shaValue"]) {
+    const element = document.getElementById(id);
+    element.textContent = "-";
+    setClass(element, "");
+  }
+  document.getElementById("previewBody").innerHTML = '<tr><td colspan="3" class="small">Process a file to display its player summary.</td></tr>';
+  document.getElementById("outputName").disabled = true;
+  document.getElementById("repairCrc").disabled = true;
+  document.getElementById("repairCrc").checked = false;
+  document.getElementById("saveButton").disabled = true;
+  document.getElementById("saveStatus").textContent = "";
+}
+
+function renderPreview(stats) {
+  const fields = [
+    [2301, "RANKXP", "Rank experience"],
+    [2350, "RANK", "Zero-based rank (display level is +1)"],
+    [2326, "PLEVEL", "Prestige level"],
+    [2302, "SCORE", "Total multiplayer score"],
+    [2303, "KILLS", "Total kills"],
+    [2305, "DEATHS", "Total deaths"],
+    [2307, "ASSISTS", "Total assists"],
+    [2308, "HEADSHOTS", "Total headshots"],
+    [2316, "WINS", "Total wins"],
+    [2317, "LOSSES", "Total losses"],
+    [2314, "TIME_PLAYED_TOTAL", "Stored total play-time counter"],
+  ];
+  const body = document.getElementById("previewBody");
+  body.replaceChildren();
+  for (const [index, name, meaning] of fields) {
+    const value = getStat(stats, index);
+    const tr = document.createElement("tr");
+    const shown = name === "RANK" ? `${value} (display ${value + 1})` : String(value);
+    for (const text of [name, meaning, shown]) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.appendChild(td);
+    }
+    body.appendChild(tr);
+  }
+}
+
+async function processSelectedFile() {
+  const status = document.getElementById("readStatus");
+  const input = document.getElementById("fileInput");
+  const file = input.files && input.files[0];
+  if (!file) {
+    status.textContent = "Choose a player file first.";
+    status.className = "status small bad";
+    return;
+  }
+  selectedFile = file;
+  status.textContent = "Reading and verifying locally…";
+  status.className = "status small";
+  document.getElementById("saveButton").disabled = true;
+
+  try {
+    const source = new Uint8Array(await file.arrayBuffer());
+    const result = extractUnlockstats(source, document.getElementById("keyInput").value);
+    const crc = statsCrcInfo(result.stats);
+    extracted = {...result, sourceSize: source.length, crc};
+
+    document.getElementById("formatValue").textContent = result.sourceFormat;
+    document.getElementById("sizeValue").textContent = `${source.length} bytes / 0x${source.length.toString(16)}`;
+    const outer = document.getElementById("outerValue");
+    outer.textContent = result.outerVerified === true ? "VERIFIED" : "not present / not needed";
+    setClass(outer, result.outerVerified === true ? "good" : "");
+    const crcValue = document.getElementById("crcValue");
+    crcValue.textContent = `${crc.valid ? "VALID" : "MISMATCH"} · stored ${hex32(crc.stored)} · calculated ${hex32(crc.calculated)}`;
+    setClass(crcValue, crc.valid ? "good" : "bad");
+    document.getElementById("pathValue").textContent = result.fsGamePath || "(base game / blank)";
+    document.getElementById("shaValue").textContent = await sha256Hex(result.stats);
+    renderPreview(result.stats);
+
+    document.getElementById("outputName").disabled = false;
+    document.getElementById("repairCrc").disabled = false;
+    document.getElementById("saveButton").disabled = !crc.valid;
+    document.getElementById("repairCrc").checked = false;
+    status.textContent = crc.valid
+      ? `Successfully extracted all 8,192 bytes. ${result.keyVariant ? "The supplied key was verified." : "No decryption key was needed."}`
+      : "The data was extracted, but the inner CRC is mismatched. Review the source or deliberately enable CRC repair before saving.";
+    status.className = "status small " + (crc.valid ? "good" : "warn");
+    document.getElementById("keyInput").value = "";
+  } catch (error) {
+    extracted = null;
+    status.textContent = error && error.message ? error.message : String(error);
+    status.className = "status small bad";
+    document.getElementById("outputName").disabled = true;
+    document.getElementById("repairCrc").disabled = true;
+    document.getElementById("saveButton").disabled = true;
+  }
+}
+
+function updateSaveEligibility() {
+  if (!extracted) return;
+  document.getElementById("saveButton").disabled = !(extracted.crc.valid || document.getElementById("repairCrc").checked);
+}
+
+function saveUnlockstats() {
+  const status = document.getElementById("saveStatus");
+  try {
+    if (!extracted) throw new Error("No player data has been extracted.");
+    const output = extracted.stats.slice();
+    const crc = statsCrcInfo(output);
+    if (!crc.valid) {
+      if (!document.getElementById("repairCrc").checked) throw new Error("The inner CRC is mismatched. Enable deliberate CRC repair or use another source file.");
+      setStatsCrc(output);
+    }
+    const finalCrc = statsCrcInfo(output);
+    if (!finalCrc.valid) throw new Error("CRC repair failed unexpectedly.");
+    const filename = document.getElementById("outputName").value.trim() || "unlockstats_mp";
+    downloadBytes(output, filename);
+    status.textContent = `Downloaded ${filename}: ${output.length} bytes, CRC-32 ${hex32(finalCrc.stored)}. The source file was not changed.`;
+    status.className = "status small good";
+  } catch (error) {
+    status.textContent = error && error.message ? error.message : String(error);
+    status.className = "status small bad";
+  }
+}
+
+function initUi() {
+  document.getElementById("fileInput").addEventListener("change", event => {
+    const file = event.target.files && event.target.files[0];
+    selectedFile = file || null;
+    extracted = null;
+    document.getElementById("readStatus").textContent = file ? `${file.name} selected. Press Read / decrypt.` : "No file processed.";
+    document.getElementById("readStatus").className = "status small";
+    document.getElementById("saveButton").disabled = true;
+  });
+  document.getElementById("showKey").addEventListener("change", event => {
+    document.getElementById("keyInput").type = event.target.checked ? "text" : "password";
+  });
+  document.getElementById("readButton").addEventListener("click", processSelectedFile);
+  document.getElementById("clearButton").addEventListener("click", resetUi);
+  document.getElementById("repairCrc").addEventListener("change", updateSaveEligibility);
+  document.getElementById("saveButton").addEventListener("click", saveUnlockstats);
+  document.getElementById("keyInput").addEventListener("keydown", event => { if (event.key === "Enter") processSelectedFile(); });
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    md4,
+    deriveIwmKey,
+    decryptIwmRegion,
+    expectedIwmHash,
+    extractUnlockstats,
+    statsCrcInfo,
+    getStat,
+  };
+}
+if (typeof document !== "undefined") initUi();
+</script>
+</body>
+</html>

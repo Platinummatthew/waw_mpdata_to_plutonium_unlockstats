@@ -1,0 +1,6 @@
+[project]
+name = "waw-mpdata-plutonium-tools"
+version = "2.1.0"
+description = "Offline World at War MPData converter and Plutonium unlockstats_mp editor"
+requires-python = ">=3.10"
+license = { text = "GPL-2.0-or-later" }

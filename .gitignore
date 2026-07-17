@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Private game data and keys
+mpdata
+mpdata.*
+mpdatabk*
+*.corrupt
+unlockstats_mp
+unlockstats_mp.*
+private_key.txt
+cdkey.txt
+.env
+
+# Generated reports and release archives
+*.csv
+*.zip
+*.sha256
+SHA256SUMS.txt
+release/
+dist/
+build/
