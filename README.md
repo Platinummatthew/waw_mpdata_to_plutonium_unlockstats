@@ -98,4 +98,4 @@ The IWM encryption/decryption implementation is a Python/JavaScript reimplementa
 
 ## Disclaimer
 
-This community project is not affiliated with, endorsed by, or sponsored by Activision, Treyarch, Steam, or Plutonium. Use it only with profile data and software you are authorized to access, and always keep backups.
+This community project is not affiliated with, endorsed by, or sponsored by Activision, Treyarch, or Steam. Use it only with profile data and software you are authorized to access, and always keep backups.
