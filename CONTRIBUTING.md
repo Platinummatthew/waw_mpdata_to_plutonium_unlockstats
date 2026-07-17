@@ -1,5 +1,5 @@
 1. Do not include your real CD key, profile saves, generated player data, or any personal fingerprints.
-2. Keep the browser tools offline and dependency-free unless a change is clearly documented and justified.
+2. Keep the browser tools offline and dependency-free unless a change is needed.
 3. Run:
 
 ```bash
