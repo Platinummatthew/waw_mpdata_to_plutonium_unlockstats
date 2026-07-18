@@ -1,3 +1,5 @@
+Their isnt really much left to add on to this project but if you want contribute
+
 1. Do not include your real CD key, profile saves, generated player data, or any personal fingerprints.
 2. Keep the browser tools offline and dependency-free unless a change is needed.
 3. Run:
