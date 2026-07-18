@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1 - First Public Release
+## 2.1 - Public Release
 
-- Removed the incorrect weapon-camouflage wording from the editor.
+- Removed an incorrect weapon camop reference from the editor.
 - Clarified that custom class names do not transfer and must be renamed in-game.
